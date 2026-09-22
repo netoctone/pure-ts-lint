@@ -1,0 +1,20 @@
+{
+  "name": "pure-ts-lint",
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "watch": "tsc --noEmit --watch -p tsconfig.json",
+    "lint": "oxlint"
+  },
+  "dependencies": {
+    "glob": "13.0.6",
+    "oxc-parser": "0.150.0"
+  },
+  "devDependencies": {
+    "@oxc-project/types": "0.150.0",
+    "@types/node": "26.2.0",
+    "oxlint": "1.83.0",
+    "prettier": "3.9.6",
+    "typescript": "7.0.2"
+  }
+}
