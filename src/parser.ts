@@ -31,7 +31,7 @@ export interface LintError {
 
 const filterLintErr = (ctx: LinterContext, err: LintErr): LintErr[] => {
   const row = ctx.filePosToRow[err.node.start];
-  if ((!!row || row === 0)) {
+  if (!!row || row === 0) {
     const disabledRules = ctx.rowToDisabledRules.get(row);
     if (disabledRules?.includes('all') || disabledRules?.includes(err.rule)) {
       return [];
@@ -326,7 +326,10 @@ const genProgramLines = (programString: string): { code: string; start: number }
 const IGNORE_CUR_LINE = 'ptsl-disable-line';
 const IGNORE_NEXT_LINE = 'ptsl-disable-next-line';
 
-const genRowToDisabledRules = (comments: T.Comment[], filePosToRow: number[]): RowToDisabledRules => {
+const genRowToDisabledRules = (
+  comments: T.Comment[],
+  filePosToRow: number[]
+): RowToDisabledRules => {
   const result = new Map();
   for (const comment of comments) {
     const row = filePosToRow[comment.start];
