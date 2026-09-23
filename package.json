@@ -1,6 +1,6 @@
 {
   "name": "pure-ts-lint",
-  "version": "0.0.0",
+  "version": "0.0.1",
   "type": "module",
   "scripts": {
     "watch": "tsc --noEmit --watch -p tsconfig.json",

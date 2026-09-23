@@ -4,9 +4,14 @@ import type * as T from 'oxc-parser';
 
 type LintRule = 'pure-ts/immutable' | 'pure-ts/typecast';
 
+type RowToDisabledRules = Map<number, (LintRule | 'all')[]>; // 0-indexed row number to ignored rules array
+
 interface LinterContext {
   path: string;
   program: string;
+  programLines: { code: string; start: number }[]; // 0-indexed row to line-of-code string and 0-indexed pos (line's first character's absolute offset in a whole file)
+  filePosToRow: number[]; // 0-indexed pos to 0-indexed row number
+  rowToDisabledRules: RowToDisabledRules;
 }
 
 // internal
@@ -24,6 +29,30 @@ export interface LintError {
 
 // utils:
 
+const filterLintErr = (ctx: LinterContext, err: LintErr): LintErr[] => {
+  const row = ctx.filePosToRow[err.node.start];
+  if ((!!row || row === 0)) {
+    const disabledRules = ctx.rowToDisabledRules.get(row);
+    if (disabledRules?.includes('all') || disabledRules?.includes(err.rule)) {
+      return [];
+    }
+  }
+  return [err];
+};
+
+const genFilePosToRow = (program: string): number[] => {
+  const result = new Array<number>(program.length);
+  let curRow = 0;
+  for (let i = 0; i < program.length; i += 1) {
+    result[i] = curRow;
+    // TODO: potentially may have issues with \r\n:
+    if (program.charAt(i) === '\n') {
+      curRow += 1;
+    }
+  }
+  return result;
+};
+
 const getCodeChunk = (ctx: LinterContext, node: T.Span): string => {
   return ctx.program.substring(node.start, node.end);
 };
@@ -32,27 +61,15 @@ const getCodeLine = (
   ctx: LinterContext,
   node: T.Span
 ): { row: number; col: number; code: string } => {
-  let curLine = 1;
-  let curLineStart = 0;
-  for (let i = 0; i < ctx.program.length; i += 1) {
-    if (i === node.start) {
-      const restCode = ctx.program.substring(curLineStart);
-      return {
-        row: curLine,
-        col: 1 + i - curLineStart,
-        code: restCode.split('\n')[0] ?? restCode
-      };
-    }
-    if (ctx.program.charAt(i) === '\n') {
-      curLine += 1;
-      curLineStart = i + 1;
-    }
+  const row = ctx.filePosToRow[node.start];
+  const programLine = ctx.programLines[row ?? 0];
+  if ((!!row || row === 0) && programLine) {
+    const col = node.start - programLine.start;
+    // converting 0-indexed row and col to 1-indexed:
+    return { row: row + 1, col: col + 1, code: programLine.code };
   }
-  return {
-    row: -1,
-    col: -1,
-    code: ''
-  };
+  // since row and col are 1-indexed, 0 (and '') are good falsy values to indicate failure:
+  return { row: 0, col: 0, code: '' };
 };
 
 const getCodeLineToPrint = (ctx: LinterContext, node: T.Span): string => {
@@ -126,13 +143,11 @@ function parseDeclaration(ctx: LinterContext, node: T.Declaration): LintErr[] {
         if (isAllowedLetOrVar(ctx, node)) {
           return [];
         }
-        return [
-          {
-            rule: 'pure-ts/immutable',
-            node,
-            msg: 'Do not use let/var - only use const'
-          }
-        ];
+        return filterLintErr(ctx, {
+          rule: 'pure-ts/immutable',
+          node,
+          msg: 'Do not use let/var - only use const'
+        });
       }
       // TODO: potentially worth to ban `using`, `await using`
       // const, using, await using:
@@ -173,13 +188,11 @@ function parseExpression(ctx: LinterContext, node: T.Expression): LintErr[] {
     case 'AssignmentExpression':
       const leftErrs = isAllowedAssignmentTarget(ctx, node.left)
         ? []
-        : [
-            {
-              rule: 'pure-ts/immutable' as const,
-              node,
-              msg: "Do not reassign variable's value unless absolutely necessary."
-            }
-          ];
+        : filterLintErr(ctx, {
+            rule: 'pure-ts/immutable' as const,
+            node,
+            msg: "Do not reassign variable's value unless absolutely necessary."
+          });
       const rightErrs = parseExpression(ctx, node.right);
       return [...leftErrs, ...rightErrs];
     case 'CallExpression':
@@ -194,13 +207,11 @@ function parseExpression(ctx: LinterContext, node: T.Expression): LintErr[] {
       if (isAllowedTSAsExpression(ctx, node)) {
         return [];
       }
-      return [
-        {
-          rule: 'pure-ts/typecast',
-          node,
-          msg: 'Do no use `as` typecast. Consider instead using TypeScript type narrowing based on type guards aka type predicates - https://www.typescriptlang.org/docs/handbook/advanced-types.html#user-defined-type-guards'
-        }
-      ];
+      return filterLintErr(ctx, {
+        rule: 'pure-ts/typecast',
+        node,
+        msg: 'Do no use `as` typecast. Consider instead using TypeScript type narrowing based on type guards aka type predicates - https://www.typescriptlang.org/docs/handbook/advanced-types.html#user-defined-type-guards'
+      });
     default:
       return [];
   }
@@ -252,7 +263,7 @@ function parseClassPropertyDefinition(ctx: LinterContext, node: T.PropertyDefini
 
   // no initial value:
   if (!node.value) {
-    return [{ rule: 'pure-ts/immutable', node, msg: MSG_MUTABLE_CLASS_PROPERTY }];
+    return filterLintErr(ctx, { rule: 'pure-ts/immutable', node, msg: MSG_MUTABLE_CLASS_PROPERTY });
   }
 
   // allowed initial values for Angular:
@@ -267,7 +278,7 @@ function parseClassPropertyDefinition(ctx: LinterContext, node: T.PropertyDefini
       'this.store.selectSignal'
     ])
   ) {
-    return [{ rule: 'pure-ts/immutable', node, msg: MSG_MUTABLE_CLASS_PROPERTY }];
+    return filterLintErr(ctx, { rule: 'pure-ts/immutable', node, msg: MSG_MUTABLE_CLASS_PROPERTY });
   }
   return [];
 }
@@ -297,12 +308,61 @@ function parseBody(ctx: LinterContext, body: (T.Directive | T.Statement)[]): Lin
 
 // === parser fns for various node types end ===
 
+const genProgramLines = (programString: string): { code: string; start: number }[] => {
+  // TODO: potentially may have issues with \r\n:
+  const programLinesCode = programString.split('\n');
+  const programLines = new Array<{ code: string; start: number }>(programLinesCode.length);
+  let lineStart = 0; // absolute offset in whole file
+  for (let i = 0; i < programLinesCode.length; i += 1) {
+    const lineCode = programLinesCode[i]!;
+    programLines[i] = { code: lineCode, start: lineStart };
+    // TODO: potentially may have issues with \r\n:
+    lineStart += lineCode.length + 1; // + 1 because of dropped '\n'
+  }
+  return programLines;
+};
+
+const IGNORE_CUR_LINE = 'eslint-disable-line';
+const IGNORE_NEXT_LINE = 'eslint-disable-next-line';
+
+const genRowToDisabledRules = (comments: T.Comment[], filePosToRow: number[]): RowToDisabledRules => {
+  const result = new Map();
+  for (const comment of comments) {
+    const row = filePosToRow[comment.start];
+    // TODO: support comment.type = 'Block' as well:
+    if ((!!row || row === 0) && comment.type === 'Line') {
+      const [directive, ...rules] = comment.value.trim().split(/,?\s/);
+      if (directive === IGNORE_CUR_LINE || directive === IGNORE_NEXT_LINE) {
+        const rowAffected = directive === IGNORE_CUR_LINE ? row : row + 1;
+        const disabledRules = rules.length ? rules : ['all' as const];
+        const existingRules = result.get(rowAffected);
+        result.set(
+          rowAffected,
+          existingRules ? [...existingRules, ...disabledRules] : disabledRules
+        );
+      }
+    }
+  }
+  return result;
+};
+
 export const parseAndLint = (filePath: string): LintError[] => {
   const bytes = readFileSync(filePath);
   const programString = bytes.toString();
-  const programAST: T.Program = parseSync(filePath, programString).program;
-  const context = { path: filePath, program: programString };
+  const { program: programAST, comments } = parseSync(filePath, programString);
+
+  const programLines = genProgramLines(programString);
+  const filePosToRow = genFilePosToRow(programString);
+  const rowToDisabledRules = genRowToDisabledRules(comments, filePosToRow);
+  const context = {
+    path: filePath,
+    program: programString,
+    programLines,
+    filePosToRow,
+    rowToDisabledRules
+  };
   const lintErrs = parseBody(context, programAST.body);
+
   return lintErrs.map((e) => ({
     rule: e.rule,
     msg: e.msg,
