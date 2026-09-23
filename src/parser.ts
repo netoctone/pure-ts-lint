@@ -271,10 +271,11 @@ function parseClassPropertyDefinition(ctx: LinterContext, node: T.PropertyDefini
   if (
     !isChunkAnAllowedFnCall(initValueChunk, [
       'inject',
+      'signal',
+      'computed',
       'input',
       'input.required',
       'output',
-      'computed',
       'this.store.selectSignal'
     ])
   ) {
@@ -322,8 +323,8 @@ const genProgramLines = (programString: string): { code: string; start: number }
   return programLines;
 };
 
-const IGNORE_CUR_LINE = 'eslint-disable-line';
-const IGNORE_NEXT_LINE = 'eslint-disable-next-line';
+const IGNORE_CUR_LINE = 'ptsl-disable-line';
+const IGNORE_NEXT_LINE = 'ptsl-disable-next-line';
 
 const genRowToDisabledRules = (comments: T.Comment[], filePosToRow: number[]): RowToDisabledRules => {
   const result = new Map();
