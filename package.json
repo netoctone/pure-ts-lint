@@ -4,10 +4,11 @@
   "version": "0.0.2",
   "type": "module",
   "bin": {
-    "ptsl": "src/lint.ts"
+    "ptsl": "dist/lint.js"
   },
   "scripts": {
     "watch": "tsc --noEmit --watch -p tsconfig.json",
+    "build": "tsc -p tsconfig.json",
     "lint": "oxlint"
   },
   "dependencies": {
