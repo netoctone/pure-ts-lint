@@ -1,3 +1,4 @@
+#!/usr/bin/env node
 import { globSync } from 'glob';
 import { readFileSync } from 'node:fs';
 

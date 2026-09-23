@@ -1,7 +1,10 @@
 {
   "name": "pure-ts-lint",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "type": "module",
+  "bin": {
+    "ptsl": "src/lint.ts"
+  },
   "scripts": {
     "watch": "tsc --noEmit --watch -p tsconfig.json",
     "lint": "oxlint"
