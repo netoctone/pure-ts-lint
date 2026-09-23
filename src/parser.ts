@@ -112,6 +112,12 @@ const isAllowedLetOrVar = (ctx: LinterContext, node: T.Declaration): boolean => 
 };
 
 const isAllowedTSAsExpression = (ctx: LinterContext, node: T.TSAsExpression): boolean => {
+  if (node.typeAnnotation.type === 'TSTypeReference') {
+    const typeNameNode = node.typeAnnotation.typeName;
+    if (typeNameNode.type === 'Identifier' && typeNameNode.name === 'const') {
+      return true;
+    }
+  }
   if (isSpecFile(ctx)) {
     return true;
   }
@@ -248,40 +254,59 @@ const isChunkAnAllowedFnCall = (codeChunk: string, allowedFns: string[]): boolea
 };
 
 function parseClassPropertyDefinition(ctx: LinterContext, node: T.PropertyDefinition): LintErr[] {
-  if (node.readonly) {
+  const getMainErrs = () => {
+    if (node.readonly) {
+      return [];
+    }
+
+    // allowed Angular component decorators - @Input, @Output:
+    const isAngularInputOrOutput = node.decorators.some((dec) => {
+      const decChunk = getCodeChunk(ctx, dec.expression);
+      return isChunkAnAllowedFnCall(decChunk, ['Input', 'Output']);
+    });
+    if (isAngularInputOrOutput) {
+      return [];
+    }
+
+    // no initial value:
+    if (!node.value) {
+      return filterLintErr(ctx, {
+        rule: 'pure-ts/immutable',
+        node,
+        msg: MSG_MUTABLE_CLASS_PROPERTY
+      });
+    }
+
+    // allowed initial values for Angular:
+    const initValueChunk = getCodeChunk(ctx, node.value);
+    if (
+      !isChunkAnAllowedFnCall(initValueChunk, [
+        'inject',
+        'signal',
+        'computed',
+        'input',
+        'input.required',
+        'output',
+        'this.store.selectSignal'
+      ])
+    ) {
+      return filterLintErr(ctx, {
+        rule: 'pure-ts/immutable',
+        node,
+        msg: MSG_MUTABLE_CLASS_PROPERTY
+      });
+    }
     return [];
-  }
+  };
 
-  // allowed Angular component decorators - @Input, @Output:
-  const isAngularInputOrOutput = node.decorators.some((dec) => {
-    const decChunk = getCodeChunk(ctx, dec.expression);
-    return isChunkAnAllowedFnCall(decChunk, ['Input', 'Output']);
-  });
-  if (isAngularInputOrOutput) {
-    return [];
-  }
+  const mainErrs = getMainErrs();
+  const valueExpressionErrs = node.value ? parseExpression(ctx, node.value) : [];
 
-  // no initial value:
-  if (!node.value) {
-    return filterLintErr(ctx, { rule: 'pure-ts/immutable', node, msg: MSG_MUTABLE_CLASS_PROPERTY });
+  if (valueExpressionErrs.length) {
+    return [...mainErrs, ...valueExpressionErrs];
+  } else {
+    return mainErrs;
   }
-
-  // allowed initial values for Angular:
-  const initValueChunk = getCodeChunk(ctx, node.value);
-  if (
-    !isChunkAnAllowedFnCall(initValueChunk, [
-      'inject',
-      'signal',
-      'computed',
-      'input',
-      'input.required',
-      'output',
-      'this.store.selectSignal'
-    ])
-  ) {
-    return filterLintErr(ctx, { rule: 'pure-ts/immutable', node, msg: MSG_MUTABLE_CLASS_PROPERTY });
-  }
-  return [];
 }
 
 function parseClassBodyNode(ctx: LinterContext, node: T.ClassElement): LintErr[] {
