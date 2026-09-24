@@ -111,7 +111,10 @@ const isAllowedLetOrVar = (ctx: LinterContext, node: T.Declaration): boolean => 
   return false;
 };
 
-const isAllowedTSAsExpression = (ctx: LinterContext, node: T.TSAsExpression): boolean => {
+const isAllowedTypecast = (
+  ctx: LinterContext,
+  node: T.TSAsExpression | T.TSTypeAssertion
+): boolean => {
   if (node.typeAnnotation.type === 'TSTypeReference') {
     const typeNameNode = node.typeAnnotation.typeName;
     if (typeNameNode.type === 'Identifier' && typeNameNode.name === 'const') {
@@ -132,6 +135,14 @@ const isAllowedTSAsExpression = (ctx: LinterContext, node: T.TSAsExpression): bo
 // they are not arrow functions because of complex cross-dependencies that are much easier with js `function` hoisting https://developer.mozilla.org/en-US/docs/Glossary/Hoisting
 // that is, `const`/`let` in most cases are better than `var`/`function`, but not always.
 
+function parseFunction(ctx: LinterContext, node: T.Function): LintErr[] {
+  // TODO: maybe parse node.params as well? (nested T.AssignmentPattern contains expression, although it's ulikely to have side effects)
+  if (node.body) {
+    return parseBody(ctx, node.body.body);
+  }
+  return [];
+}
+
 function parseDeclaration(ctx: LinterContext, node: T.Declaration): LintErr[] {
   switch (node.type) {
     case 'ClassDeclaration':
@@ -140,10 +151,7 @@ function parseDeclaration(ctx: LinterContext, node: T.Declaration): LintErr[] {
     case 'FunctionExpression':
     case 'TSDeclareFunction':
     case 'TSEmptyBodyFunctionExpression':
-      if (node.body) {
-        return parseBody(ctx, node.body.body);
-      }
-      return [];
+      return parseFunction(ctx, node);
     case 'VariableDeclaration':
       if (node.kind === 'let' || node.kind === 'var') {
         if (isAllowedLetOrVar(ctx, node)) {
@@ -185,7 +193,18 @@ function parseArguments(ctx: LinterContext, args: T.Argument[]): LintErr[] {
 }
 
 function parseExpression(ctx: LinterContext, node: T.Expression): LintErr[] {
+  // node.type not processing:
+  // ChainExpression, ClassExpression, ImportExpression, TaggedTemplateExpression,
+  // JSXElement, JSXFragment, TSInstantiationExpression, V8IntrinsicExpression
   switch (node.type) {
+    case 'ArrayExpression':
+      return node.elements.flatMap((itemNode) =>
+        !itemNode
+          ? []
+          : itemNode.type === 'SpreadElement'
+            ? parseExpression(ctx, itemNode.argument)
+            : parseExpression(ctx, itemNode)
+      );
     case 'ArrowFunctionExpression':
       if (node.body.type === 'BlockStatement') {
         return parseBody(ctx, node.body.body);
@@ -201,16 +220,45 @@ function parseExpression(ctx: LinterContext, node: T.Expression): LintErr[] {
           });
       const rightErrs = parseExpression(ctx, node.right);
       return [...leftErrs, ...rightErrs];
+    case 'AwaitExpression':
+      return parseExpression(ctx, node.argument);
+    case 'BinaryExpression':
+      return [
+        ...(node.operator !== 'in' ? parseExpression(ctx, node.left) : []),
+        ...parseExpression(ctx, node.right)
+      ];
     case 'CallExpression':
-      return parseArguments(ctx, node.arguments);
+      return [...parseExpression(ctx, node.callee), ...parseArguments(ctx, node.arguments)];
+    case 'ConditionalExpression':
+      return [
+        ...parseExpression(ctx, node.test),
+        ...parseExpression(ctx, node.consequent),
+        ...parseExpression(ctx, node.alternate)
+      ];
+    case 'FunctionExpression':
+      return parseFunction(ctx, node);
+    case 'LogicalExpression':
+      return [...parseExpression(ctx, node.left), ...parseExpression(ctx, node.right)];
+    case 'MemberExpression':
+      return [
+        ...parseExpression(ctx, node.object),
+        ...(node.property.type !== 'Identifier' && node.property.type !== 'PrivateIdentifier'
+          ? parseExpression(ctx, node.property)
+          : [])
+      ];
     case 'NewExpression':
       return [...parseExpression(ctx, node.callee), ...parseArguments(ctx, node.arguments)];
     case 'ObjectExpression':
       return node.properties.flatMap((itemNode) => parseObjectProperty(ctx, itemNode));
     case 'ParenthesizedExpression':
       return parseExpression(ctx, node.expression);
+    case 'SequenceExpression':
+      return node.expressions.flatMap((itemNode) => parseExpression(ctx, itemNode));
+    case 'TemplateLiteral':
+      return node.expressions.flatMap((itemNode) => parseExpression(ctx, itemNode));
     case 'TSAsExpression':
-      if (isAllowedTSAsExpression(ctx, node)) {
+    case 'TSTypeAssertion':
+      if (isAllowedTypecast(ctx, node)) {
         return [];
       }
       return filterLintErr(ctx, {
@@ -218,13 +266,40 @@ function parseExpression(ctx: LinterContext, node: T.Expression): LintErr[] {
         node,
         msg: 'Do no use `as` typecast. Consider instead using TypeScript type narrowing based on type guards aka type predicates - https://www.typescriptlang.org/docs/handbook/advanced-types.html#user-defined-type-guards'
       });
+    case 'TSNonNullExpression':
+      return parseExpression(ctx, node.expression);
+    case 'UnaryExpression':
+      return parseExpression(ctx, node.argument);
+    case 'UpdateExpression':
+      return filterLintErr(ctx, {
+        rule: 'pure-ts/immutable' as const,
+        node,
+        msg: "Do not change variable's value unless absolutely necessary."
+      });
+    case 'YieldExpression':
+      if (node.argument) {
+        return parseExpression(ctx, node.argument);
+      }
+      return [];
     default:
       return [];
   }
 }
 
+function parseForStatementInit(ctx: LinterContext, node: T.ForStatementInit): LintErr[] {
+  if (node.type === 'VariableDeclaration') {
+    return parseDeclaration(ctx, node);
+  } else {
+    return parseExpression(ctx, node);
+  }
+}
+
 function parseBodyNode(ctx: LinterContext, node: T.Directive | T.Statement): LintErr[] {
   switch (node.type) {
+    case 'BlockStatement':
+      return parseBody(ctx, node.body);
+    case 'DoWhileStatement':
+      return [...parseBodyNode(ctx, node.body), ...parseExpression(ctx, node.test)];
     case 'ExportNamedDeclaration':
       if (node.declaration) {
         return parseDeclaration(ctx, node.declaration);
@@ -232,11 +307,26 @@ function parseBodyNode(ctx: LinterContext, node: T.Directive | T.Statement): Lin
       return [];
     case 'ExpressionStatement':
       return parseExpression(ctx, node.expression);
+    case 'ForStatement':
+      return [
+        ...(node.init ? parseForStatementInit(ctx, node.init) : []),
+        ...(node.test ? parseExpression(ctx, node.test) : []),
+        ...(node.update ? parseExpression(ctx, node.update) : []),
+        ...parseBodyNode(ctx, node.body)
+      ];
+    case 'IfStatement':
+      return [
+        ...parseExpression(ctx, node.test),
+        ...parseBodyNode(ctx, node.consequent),
+        ...(node.alternate ? parseBodyNode(ctx, node.alternate) : [])
+      ];
     case 'ReturnStatement':
       if (node.argument) {
         return parseExpression(ctx, node.argument);
       }
       return [];
+    case 'WhileStatement':
+      return [...parseExpression(ctx, node.test), ...parseBodyNode(ctx, node.body)];
     default:
       // avoid `as T.Declaration` - it only works because `parseDeclaration` returns `[]` for non-recognized node.type values
       return parseDeclaration(ctx, node as T.Declaration);
