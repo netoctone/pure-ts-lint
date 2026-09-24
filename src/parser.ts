@@ -334,7 +334,7 @@ function parseBodyNode(ctx: LinterContext, node: T.Directive | T.Statement): Lin
 }
 
 const MSG_MUTABLE_CLASS_PROPERTY =
-  'Do not define mutable class property - consider instead using readonly property or ngrx action/reducer/store/selector for things that really need to mutate';
+  'Do not define mutable class property - consider instead using readonly property or redux/ngrx action/reducer/store/selector for things that really need to mutate. Also can consider react hook or angular signal if mutable state is small and used in just one or few classes.';
 
 // TODO: rewrite via parsing AST nodes (similar to all other parse* fns):
 const isChunkAnAllowedFnCall = (codeChunk: string, allowedFns: string[]): boolean => {
