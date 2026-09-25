@@ -167,3 +167,11 @@ ptsl --suppress-prune
 Useful to run before finalising each improvement commit.
 
 In some cases you may need the opposite. To increase maximums simply reset them via running `ptsl --suppress-init` again.
+
+## Linting JavaScript
+
+To lint JavaScript files in addition to TypeScript, use `--js` option
+
+```sh
+ptsl --js
+```
