@@ -100,9 +100,9 @@ class Component {
 Examples of _incorrect_ code:
 
 ```ts
-const x = { a: 1 } as object; // Do no use `as` type assertion (typecast). Consider instead using TypeScript type narrowing based on type guards aka type predicates - https://www.typescriptlang.org/docs/handbook/advanced-types.html#user-defined-type-guards
+const x = { a: 1 } as object; // Do not use `as` type assertion (typecast). Consider instead using TypeScript type narrowing based on type guards aka type predicates - https://www.typescriptlang.org/docs/handbook/advanced-types.html#user-defined-type-guards
 
-const y = <object>{ b: 2 }; // Do no use `<>` type assertion (typecast). Consider instead using TypeScript type narrowing based on type guards aka type predicates - https://www.typescriptlang.org/docs/handbook/advanced-types.html#user-defined-type-guards
+const y = <object>{ b: 2 }; // Do not use `<>` type assertion (typecast). Consider instead using TypeScript type narrowing based on type guards aka type predicates - https://www.typescriptlang.org/docs/handbook/advanced-types.html#user-defined-type-guards
 ```
 
 Examples of _correct_ code for pure-ts/typecast rule:
