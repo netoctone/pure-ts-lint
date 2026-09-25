@@ -29,7 +29,7 @@ const filesErrs = files
 
 const remainigFilesErrs: FileAndErrs[] = suppress(process.argv, packages, filesErrs, process.cwd());
 
-let totalErrors = 0;
+let totalErrors = 0; // ptsl-disable-line immutable
 for (const { file, errs } of remainigFilesErrs) {
   totalErrors += errs.length;
   console.log('');

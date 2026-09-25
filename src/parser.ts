@@ -42,12 +42,13 @@ const filterLintErr = (ctx: LinterContext, err: LintErr): LintErr[] => {
 
 const genFilePosToRow = (program: string): number[] => {
   const result = new Array<number>(program.length); // eslint-disable-line no-new-array
-  let curRow = 0;
+  let curRow = 0; // ptsl-disable-line immutable
+  // ptsl-disable-next-line immutable
   for (let i = 0; i < program.length; i += 1) {
-    result[i] = curRow;
+    result[i] = curRow; // ptsl-disable-line immutable
     // TODO: potentially may have issues with \r\n:
     if (program.charAt(i) === '\n') {
-      curRow += 1;
+      curRow += 1; // ptsl-disable-line immutable
     }
   }
   return result;
@@ -428,11 +429,14 @@ const genProgramLines = (programString: string): { code: string; start: number }
   // TODO: potentially may have issues with \r\n:
   const programLinesCode = programString.split('\n');
   const programLines = new Array<{ code: string; start: number }>(programLinesCode.length); // eslint-disable-line no-new-array
+  // ptsl-disable-next-line immutable
   let lineStart = 0; // absolute offset in whole file
+  // ptsl-disable-next-line immutable
   for (let i = 0; i < programLinesCode.length; i += 1) {
     const lineCode = programLinesCode[i]!;
-    programLines[i] = { code: lineCode, start: lineStart };
+    programLines[i] = { code: lineCode, start: lineStart }; // ptsl-disable-line immutable
     // TODO: potentially may have issues with \r\n:
+    // ptsl-disable-next-line immutable
     lineStart += lineCode.length + 1; // + 1 because of dropped '\n'
   }
   return programLines;
@@ -450,7 +454,10 @@ const genRowToDisabledRules = (
     const row = filePosToRow[comment.start];
     // TODO: support comment.type = 'Block' as well:
     if ((!!row || row === 0) && comment.type === 'Line') {
-      const [directive, ...rules] = comment.value.trim().split(/,?\s/);
+      const [directive, ...rulesRaw] = comment.value.trim().split(/,?\s/);
+      const rules = rulesRaw.map((rule) =>
+        rule.startsWith('pure-ts/') ? rule : `pure-ts/${rule}`
+      );
       if (directive === IGNORE_CUR_LINE || directive === IGNORE_NEXT_LINE) {
         const rowAffected = directive === IGNORE_CUR_LINE ? row : row + 1;
         const disabledRules = rules.length ? rules : ['all' as const];

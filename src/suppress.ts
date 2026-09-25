@@ -42,8 +42,8 @@ const genDirsTree = (packages: string[]): DirsTree => {
 
 const findClosestSuppressFile = (tsFile: string, dirsTree: DirsTree): string => {
   const parts = getPathParts(tsFile);
-  let suppressFile = dirsTree.suppressFile || '';
-  let node = dirsTree;
+  let suppressFile = dirsTree.suppressFile || ''; // ptsl-disable-line immutable
+  let node = dirsTree; // ptsl-disable-line immutable
   for (const part of parts) {
     const nextNode = node.nodes[part];
     if (!nextNode) {
@@ -138,6 +138,7 @@ export const suppress = (
           return null;
         })
         .filter((rule) => !!rule);
+      // ptsl-disable-next-line immutable
       suppFileContent[fileRelative] = fileLiveErrorsCounts; // safe to override, because `file` is processed now. Needed for `isSuppressPrune`
       if (rulesExceedingMaxErrors.length <= 0) {
         return null;
@@ -145,7 +146,7 @@ export const suppress = (
       return { file, errs: errs.filter(({ rule }) => rulesExceedingMaxErrors.includes(rule)) };
     } else if (isSuppressInit) {
       const suppFileContent = suppFileToItsContent.get(suppressFile) || {};
-      suppFileContent[fileRelative] = fileLiveErrorsCounts;
+      suppFileContent[fileRelative] = fileLiveErrorsCounts; // ptsl-disable-line immutable
       suppFileToItsContent.set(suppressFile, suppFileContent);
       return null;
     }
