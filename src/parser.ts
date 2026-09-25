@@ -195,7 +195,7 @@ function parseDeclaration(ctx: LinterContext, node: T.Declaration): LintErr[] {
         return filterLintErr(ctx, {
           rule: 'pure-ts/immutable',
           node,
-          msg: 'Do not use let/var - only use const'
+          msg: 'Do not use let/var - only use const (or explicit suppress comment)'
         });
       }
       // TODO: potentially worth to ban `using`, `await using`
