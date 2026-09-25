@@ -69,6 +69,10 @@ interface SuppressFileContent {
   [file: string]: SingleFileRuleErrorsCounts;
 }
 
+// maps suppression file's relative path to file's parsed content.
+// path is relative to project root dir.
+type SuppressFileToContentMap = Map<string, SuppressFileContent>;
+
 const genSingleFileRuleErrorsCounts = (errs: LintError[]): SingleFileRuleErrorsCounts => {
   const res: SingleFileRuleErrorsCounts = {};
   for (const err of errs) {
@@ -78,8 +82,8 @@ const genSingleFileRuleErrorsCounts = (errs: LintError[]): SingleFileRuleErrorsC
   return res;
 };
 
-const readAllSuppressionsFiles = (packages: string[]): Map<string, SuppressFileContent> => {
-  const res: Map<string, SuppressFileContent> = new Map();
+const readAllSuppressionsFiles = (packages: string[]): SuppressFileToContentMap => {
+  const res: SuppressFileToContentMap = new Map();
   for (const packageFile of packages) {
     const suppressFile = packageFile.replace('package.json', PTSL_SUPPRESSIONS_JSON);
     if (existsSync(suppressFile)) {
@@ -91,8 +95,9 @@ const readAllSuppressionsFiles = (packages: string[]): Map<string, SuppressFileC
 
 export const suppress = (
   argv: string[],
-  packages: string[],
-  filesErrs: FileAndErrs[]
+  packages: string[], // absolule paths
+  filesErrs: FileAndErrs[],
+  rootDir: string
 ): FileAndErrs[] => {
   const isSuppress = argv.includes('--suppress');
   const isSuppressInit = argv.includes('--suppress-init');
@@ -105,12 +110,14 @@ export const suppress = (
 
   const dirsTree: DirsTree = genDirsTree(packages);
 
-  const suppFileToItsContent =
+  const suppFileToItsContent: SuppressFileToContentMap =
     isSuppress || isSuppressPrune
-      ? readAllSuppressionsFiles(packages)
-      : new Map<string, SuppressFileContent>();
+      ? // prettier
+        readAllSuppressionsFiles(packages)
+      : new Map();
   const remainingFilesErrsWithNulls = filesErrs.map((fileAndErrs) => {
     const { file, errs } = fileAndErrs;
+    const fileRelative = file.substring(rootDir.length + 1);
     const suppressFile = findClosestSuppressFile(file, dirsTree);
     const fileLiveErrorsCounts = genSingleFileRuleErrorsCounts(errs);
 
@@ -119,7 +126,7 @@ export const suppress = (
       if (!suppFileContent) {
         return fileAndErrs; // ptsl-suppressions.json file not found = errors are not suppressed
       }
-      const ruleToData = suppFileContent[file];
+      const ruleToData = suppFileContent[fileRelative];
       if (!ruleToData) {
         return fileAndErrs; // ptsl-suppressions.json doesn't contain suppressions for `file` = errors are not suppressed
       }
@@ -131,14 +138,14 @@ export const suppress = (
           return null;
         })
         .filter((rule) => !!rule);
-      suppFileContent[file] = fileLiveErrorsCounts; // safe to override, because `file` is processed now. Needed for `isSuppressPrune`
+      suppFileContent[fileRelative] = fileLiveErrorsCounts; // safe to override, because `file` is processed now. Needed for `isSuppressPrune`
       if (rulesExceedingMaxErrors.length <= 0) {
         return null;
       }
       return { file, errs: errs.filter(({ rule }) => rulesExceedingMaxErrors.includes(rule)) };
     } else if (isSuppressInit) {
       const suppFileContent = suppFileToItsContent.get(suppressFile) || {};
-      suppFileContent[file] = fileLiveErrorsCounts;
+      suppFileContent[fileRelative] = fileLiveErrorsCounts;
       suppFileToItsContent.set(suppressFile, suppFileContent);
       return null;
     }

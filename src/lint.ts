@@ -23,7 +23,7 @@ const filesErrs = files
   .map((file) => ({ file, errs: parseAndLint(file) }))
   .filter(({ errs }) => errs.length > 0);
 
-const remainigFilesErrs = suppress(process.argv, packages, filesErrs);
+const remainigFilesErrs = suppress(process.argv, packages, filesErrs, process.cwd());
 
 let totalErrors = 0;
 for (const { file, errs } of remainigFilesErrs) {
