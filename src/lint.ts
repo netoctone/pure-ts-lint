@@ -1,6 +1,5 @@
 #!/usr/bin/env node
 import { globSync } from 'glob';
-import { readFileSync } from 'node:fs';
 
 import { parseAndLint } from './parser.ts';
 import { suppress, type FileAndErrs } from './suppress.ts';
@@ -19,13 +18,16 @@ const packages = [
   `${process.cwd()}/package.json`,
   ...globSync(`${process.cwd()}/**/package.json`, globConfig)
 ];
-const files = globSync(`${process.cwd()}/**/*.{ts,mts,tsx${lintJS ? ',js,mjs,jsx' : ''}}`, globConfig);
+const files = globSync(
+  `${process.cwd()}/**/*.{ts,mts,tsx${lintJS ? ',js,mjs,jsx' : ''}}`,
+  globConfig
+);
 
 const filesErrs = files
   .map((file) => ({ file, errs: parseAndLint(file) }))
   .filter(({ errs }) => errs.length > 0);
 
-const remainigFilesErrs = suppress(process.argv, packages, filesErrs, process.cwd());
+const remainigFilesErrs: FileAndErrs[] = suppress(process.argv, packages, filesErrs, process.cwd());
 
 let totalErrors = 0;
 for (const { file, errs } of remainigFilesErrs) {

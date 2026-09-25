@@ -41,7 +41,7 @@ const filterLintErr = (ctx: LinterContext, err: LintErr): LintErr[] => {
 };
 
 const genFilePosToRow = (program: string): number[] => {
-  const result = new Array<number>(program.length);
+  const result = new Array<number>(program.length); // eslint-disable-line no-new-array
   let curRow = 0;
   for (let i = 0; i < program.length; i += 1) {
     result[i] = curRow;
@@ -79,11 +79,11 @@ const getCodeLineToPrint = (ctx: LinterContext, node: T.Span): string => {
 
 // print utils (most simple):
 
-const printCodeLine = (ctx: LinterContext, node: T.Span): void => {
+const _printCodeLine = (ctx: LinterContext, node: T.Span): void => {
   console.log(getCodeLineToPrint(ctx, node));
 };
 
-const printCodeChunk = (ctx: LinterContext, node: T.Span): void => {
+const _printCodeChunk = (ctx: LinterContext, node: T.Span): void => {
   console.log(getCodeChunk(ctx, node));
 };
 
@@ -104,7 +104,7 @@ const isAllowedAssignmentTarget = (ctx: LinterContext, node: T.AssignmentTarget)
   return false;
 };
 
-const isAllowedLetOrVar = (ctx: LinterContext, node: T.Declaration): boolean => {
+const isAllowedLetOrVar = (ctx: LinterContext, _node: T.Declaration): boolean => {
   if (isSpecFile(ctx)) {
     return true;
   }
@@ -427,7 +427,7 @@ function parseBody(ctx: LinterContext, body: (T.Directive | T.Statement)[]): Lin
 const genProgramLines = (programString: string): { code: string; start: number }[] => {
   // TODO: potentially may have issues with \r\n:
   const programLinesCode = programString.split('\n');
-  const programLines = new Array<{ code: string; start: number }>(programLinesCode.length);
+  const programLines = new Array<{ code: string; start: number }>(programLinesCode.length); // eslint-disable-line no-new-array
   let lineStart = 0; // absolute offset in whole file
   for (let i = 0; i < programLinesCode.length; i += 1) {
     const lineCode = programLinesCode[i]!;
