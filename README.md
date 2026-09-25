@@ -114,13 +114,44 @@ const y = <const>{ b: 2 };
 
 ## Disable rules
 
-Supports ESLint-like single line comments `ptsl-diable-line` and `ptsl-disable-next-line`
+Supports an advanced function-scope single-line comment `ptsl-disable-fn`
+
+And also supports ESLint-like single line comments `ptsl-diable-line`, `ptsl-disable-next-line`
+
+### ptsl-disable-fn
+
+Disables lint rule(s) for the whole body of a function,
+
+including nested functions if they are defined in the body.
+
+Should be specified on the first line of the function body on a line by itself.
+
+```ts
+const lambda = () => {
+  // ptsl-disable-fn immutable
+  let x = 0;
+  const increment = () => {
+    return x += 1;
+  }
+  return increment;
+};
+
+function lambda2(): number {
+  // ptsl-disable-fn typecast
+  return <number>'10';
+}
+```
+
+### ptsl-disable-next-line
 
 ```ts
 type Color = 'red' | 'green';
 
-// ptsl-disable-next-line pure-ts/immutable, pure-ts/typecast
+// ptsl-disable-next-line immutable, typecast
 let a = ['red'] as Color[];
+
+// ptsl-disable-next-line pure-ts/immutable, pure-ts/typecast
+let b = ['green'] as Color[];
 
 // ptsl-disable-next-line
 for (let i = 0; i < 10; i += 1) {
@@ -128,8 +159,11 @@ for (let i = 0; i < 10; i += 1) {
 }
 ```
 
+### ptsl-disable-line
+
 ```ts
 let x = 0; // ptsl-disable-line pure-ts/immutable
+let y = 1; // ptsl-disable-line pure-ts
 ```
 
 ## Suppressions

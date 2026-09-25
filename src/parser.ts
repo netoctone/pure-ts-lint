@@ -4,7 +4,16 @@ import type * as T from 'oxc-parser';
 
 type LintRule = 'pure-ts/immutable' | 'pure-ts/typecast';
 
-type RowToDisabledRules = Map<number, (LintRule | 'all')[]>; // 0-indexed row number to ignored rules array
+type DisabledLintRule = LintRule | 'all';
+
+type RowToDisabledRules = Map<number, DisabledLintRule[]>; // 0-indexed row number to ignored rules array
+
+// redundant object needed for typescript to do compile-time check for exhaustiveness
+// (that all string literals comprising LintRule type union are present in object without exception):
+const allLintRules: Record<LintRule, boolean> = {
+  ['pure-ts/immutable']: true,
+  ['pure-ts/typecast']: true
+};
 
 interface LinterContext {
   path: string;
@@ -12,6 +21,11 @@ interface LinterContext {
   programLines: { code: string; start: number }[]; // 0-indexed row to line-of-code string and 0-indexed pos (line's first character's absolute offset in a whole file)
   filePosToRow: number[]; // 0-indexed pos to 0-indexed row number
   rowToDisabledRules: RowToDisabledRules;
+  // if a file line contains comment `// ptsl-disable-fn [rule], ...`,
+  // this line's 0-based line number will be mapped to a list of rules that this comment disables
+  // in the following Map:
+  rowToTopFnBodyComment: RowToDisabledRules;
+  fnBodyDisabledRules: DisabledLintRule[];
 }
 
 // internal
@@ -30,6 +44,9 @@ export interface LintError {
 // utils:
 
 const filterLintErr = (ctx: LinterContext, err: LintErr): LintErr[] => {
+  if (ctx.fnBodyDisabledRules.includes('all') || ctx.fnBodyDisabledRules.includes(err.rule)) {
+    return [];
+  }
   const row = ctx.filePosToRow[err.node.start];
   if (!!row || row === 0) {
     const disabledRules = ctx.rowToDisabledRules.get(row);
@@ -41,14 +58,14 @@ const filterLintErr = (ctx: LinterContext, err: LintErr): LintErr[] => {
 };
 
 const genFilePosToRow = (program: string): number[] => {
+  // ptsl-disable-fn immutable
   const result = new Array<number>(program.length); // eslint-disable-line no-new-array
-  let curRow = 0; // ptsl-disable-line immutable
-  // ptsl-disable-next-line immutable
+  let curRow = 0;
   for (let i = 0; i < program.length; i += 1) {
-    result[i] = curRow; // ptsl-disable-line immutable
+    result[i] = curRow;
     // TODO: potentially may have issues with \r\n:
     if (program.charAt(i) === '\n') {
-      curRow += 1; // ptsl-disable-line immutable
+      curRow += 1;
     }
   }
   return result;
@@ -131,15 +148,32 @@ const isAllowedTypecast = (
   return false;
 };
 
+const findFnBodyDisabledRules = (ctx: LinterContext, fnNode: T.Span): DisabledLintRule[] | null => {
+  const rowMin = ctx.filePosToRow[fnNode.start];
+  const rowMax = ctx.filePosToRow[fnNode.end];
+  if ((!!rowMin || rowMin === 0) && (!!rowMax || rowMax === 0)) {
+    // check that function body occupies at least one full line of code:
+    if (rowMin + 1 <= rowMax - 1) {
+      const disabledRules = ctx.rowToTopFnBodyComment.get(rowMin + 1);
+      if (disabledRules) {
+        return disabledRules;
+      }
+    }
+  }
+  return null;
+};
+
 // === parser fns for various node types start ===
 
 // they are not arrow functions because of complex cross-dependencies that are much easier with js `function` hoisting https://developer.mozilla.org/en-US/docs/Glossary/Hoisting
 // that is, `const`/`let` in most cases are better than `var`/`function`, but not always.
 
 function parseFunction(ctx: LinterContext, node: T.Function): LintErr[] {
+  const fnBodyDisabledRules = findFnBodyDisabledRules(ctx, node);
+  const newCtx = fnBodyDisabledRules ? { ...ctx, fnBodyDisabledRules } : ctx;
   // TODO: maybe parse node.params as well? (nested T.AssignmentPattern contains expression, although it's ulikely to have side effects)
   if (node.body) {
-    return parseBody(ctx, node.body.body);
+    return parseBody(newCtx, node.body.body);
   }
   return [];
 }
@@ -208,7 +242,9 @@ function parseExpression(ctx: LinterContext, node: T.Expression): LintErr[] {
       );
     case 'ArrowFunctionExpression':
       if (node.body.type === 'BlockStatement') {
-        return parseBody(ctx, node.body.body);
+        const fnBodyDisabledRules = findFnBodyDisabledRules(ctx, node);
+        const newCtx = fnBodyDisabledRules ? { ...ctx, fnBodyDisabledRules } : ctx;
+        return parseBody(newCtx, node.body.body);
       }
       return parseExpression(ctx, node.body);
     case 'AssignmentExpression':
@@ -426,50 +462,67 @@ function parseBody(ctx: LinterContext, body: (T.Directive | T.Statement)[]): Lin
 // === parser fns for various node types end ===
 
 const genProgramLines = (programString: string): { code: string; start: number }[] => {
+  // ptsl-disable-fn immutable
+
   // TODO: potentially may have issues with \r\n:
   const programLinesCode = programString.split('\n');
   const programLines = new Array<{ code: string; start: number }>(programLinesCode.length); // eslint-disable-line no-new-array
-  // ptsl-disable-next-line immutable
   let lineStart = 0; // absolute offset in whole file
-  // ptsl-disable-next-line immutable
   for (let i = 0; i < programLinesCode.length; i += 1) {
     const lineCode = programLinesCode[i]!;
-    programLines[i] = { code: lineCode, start: lineStart }; // ptsl-disable-line immutable
+    programLines[i] = { code: lineCode, start: lineStart };
     // TODO: potentially may have issues with \r\n:
-    // ptsl-disable-next-line immutable
     lineStart += lineCode.length + 1; // + 1 because of dropped '\n'
   }
   return programLines;
 };
 
-const IGNORE_CUR_LINE = 'ptsl-disable-line';
-const IGNORE_NEXT_LINE = 'ptsl-disable-next-line';
+const IGNORE = {
+  CUR_LINE: 'ptsl-disable-line',
+  NEXT_LINE: 'ptsl-disable-next-line',
+  FN_BODY: 'ptsl-disable-fn'
+} as const;
+
+// mutates `disabledRulesMap` argument:
+const appendToDisabledRulesMap = (
+  disabledRulesMap: RowToDisabledRules,
+  row: number,
+  rules: LintRule[]
+): void => {
+  const disabledRules = rules.length ? rules : ['all' as const];
+  const existingRules = disabledRulesMap.get(row);
+  disabledRulesMap.set(row, existingRules ? [...existingRules, ...disabledRules] : disabledRules);
+};
 
 const genRowToDisabledRules = (
   comments: T.Comment[],
   filePosToRow: number[]
-): RowToDisabledRules => {
-  const result = new Map();
+): { rowToDisabledRules: RowToDisabledRules; rowToTopFnBodyComment: RowToDisabledRules } => {
+  const rowToDisabledRules: RowToDisabledRules = new Map();
+  const rowToTopFnBodyComment: RowToDisabledRules = new Map();
+
   for (const comment of comments) {
     const row = filePosToRow[comment.start];
     // TODO: support comment.type = 'Block' as well:
     if ((!!row || row === 0) && comment.type === 'Line') {
       const [directive, ...rulesRaw] = comment.value.trim().split(/,?\s/);
-      const rules = rulesRaw.map((rule) =>
-        rule.startsWith('pure-ts/') ? rule : `pure-ts/${rule}`
-      );
-      if (directive === IGNORE_CUR_LINE || directive === IGNORE_NEXT_LINE) {
-        const rowAffected = directive === IGNORE_CUR_LINE ? row : row + 1;
-        const disabledRules = rules.length ? rules : ['all' as const];
-        const existingRules = result.get(rowAffected);
-        result.set(
-          rowAffected,
-          existingRules ? [...existingRules, ...disabledRules] : disabledRules
-        );
+      const rules = rulesRaw
+        .map((rule) => (rule.startsWith('pure-ts/') ? rule : `pure-ts/${rule}`))
+        .filter((rule): rule is LintRule => rule in allLintRules);
+      if (directive === IGNORE.CUR_LINE || directive === IGNORE.NEXT_LINE) {
+        const rowAffected = directive === IGNORE.CUR_LINE ? row : row + 1;
+        appendToDisabledRulesMap(rowToDisabledRules, rowAffected, rules);
+      }
+      if (directive === IGNORE.FN_BODY) {
+        appendToDisabledRulesMap(rowToTopFnBodyComment, row, rules);
       }
     }
   }
-  return result;
+
+  return {
+    rowToDisabledRules,
+    rowToTopFnBodyComment
+  };
 };
 
 export const parseAndLint = (filePath: string): LintError[] => {
@@ -479,13 +532,18 @@ export const parseAndLint = (filePath: string): LintError[] => {
 
   const programLines = genProgramLines(programString);
   const filePosToRow = genFilePosToRow(programString);
-  const rowToDisabledRules = genRowToDisabledRules(comments, filePosToRow);
+  const { rowToDisabledRules, rowToTopFnBodyComment } = genRowToDisabledRules(
+    comments,
+    filePosToRow
+  );
   const context = {
     path: filePath,
     program: programString,
     programLines,
     filePosToRow,
-    rowToDisabledRules
+    rowToDisabledRules,
+    rowToTopFnBodyComment,
+    fnBodyDisabledRules: []
   };
   const lintErrs = parseBody(context, programAST.body);
 
