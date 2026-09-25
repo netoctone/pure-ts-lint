@@ -6,7 +6,7 @@ type LintRule = 'pure-ts/immutable' | 'pure-ts/typecast';
 
 type DisabledLintRule = LintRule | 'all';
 
-type RowToDisabledRules = Map<number, DisabledLintRule[]>; // 0-indexed row number to ignored rules array
+type RowToDisabledRules = Map<number, DisabledLintRule[]>; // 0-based row number to ignored rules array
 
 // redundant object needed for typescript to do compile-time check for exhaustiveness
 // (that all string literals comprising LintRule type union are present in object without exception):
@@ -18,8 +18,8 @@ const allLintRules: Record<LintRule, boolean> = {
 interface LinterContext {
   path: string;
   program: string;
-  programLines: { code: string; start: number }[]; // 0-indexed row to line-of-code string and 0-indexed pos (line's first character's absolute offset in a whole file)
-  filePosToRow: number[]; // 0-indexed pos to 0-indexed row number
+  programLines: { code: string; start: number }[]; // 0-based row to line-of-code string and 0-based pos (line's first character's absolute offset in a whole file)
+  filePosToRow: number[]; // 0-based pos to 0-based row number
   rowToDisabledRules: RowToDisabledRules;
   // if a file line contains comment `// ptsl-disable-fn [rule], ...`,
   // this line's 0-based line number will be mapped to a list of rules that this comment disables
@@ -83,10 +83,10 @@ const getCodeLine = (
   const programLine = ctx.programLines[row ?? 0];
   if ((!!row || row === 0) && programLine) {
     const col = node.start - programLine.start;
-    // converting 0-indexed row and col to 1-indexed:
+    // converting 0-based row and col to 1-based:
     return { row: row + 1, col: col + 1, code: programLine.code };
   }
-  // since row and col are 1-indexed, 0 (and '') are good falsy values to indicate failure:
+  // since row and col are 1-based, 0 (and '') are good falsy values to indicate failure:
   return { row: 0, col: 0, code: '' };
 };
 
@@ -195,7 +195,7 @@ function parseDeclaration(ctx: LinterContext, node: T.Declaration): LintErr[] {
         return filterLintErr(ctx, {
           rule: 'pure-ts/immutable',
           node,
-          msg: 'Do not use let/var - only use const (or explicit suppress comment)'
+          msg: 'Do not use let/var - only use const (or explicit disable comment)'
         });
       }
       // TODO: potentially worth to ban `using`, `await using`

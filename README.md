@@ -4,7 +4,7 @@ TypeScript linter to prioritise pure functions and type safety (beyond TS strict
 
 Inspired by `eslint-plugin-react-hooks` `react-hooks/immutability` rule.
 
-Powered by high-performance oxc-parser (at least 3x faster than ESLint)
+Powered by high-performance oxc-parser (oxlint is 50x - 100x faster than ESLint)
 
 ## Why
 
@@ -20,7 +20,7 @@ However, TypeScript itself does not prioritise immutability over mutability.
 
 Hence the existence of libraries like `immutable.js` and custom linter rules like `react-hooks/immutability`.
 
-This project attempts to prioritise immutablity in all of the application's code via custom linter rule `pure-ts/immutable`.
+This project attempts to prioritise immutability in all of the application's code via custom linter rule `pure-ts/immutable`.
 
 It doesn't fully ban mutability.
 
@@ -59,7 +59,7 @@ Or run
 Examples of _incorrect_ code:
 
 ```ts
-// Do not use let/var - only use const
+// Do not use let/var - only use const (or explicit disable comment)
 var a;
 let x;
 var a2 = 1;
@@ -116,7 +116,7 @@ const y = <const>{ b: 2 };
 
 Supports an advanced function-scope single-line comment `ptsl-disable-fn`
 
-And also supports ESLint-like single line comments `ptsl-diable-line`, `ptsl-disable-next-line`
+And also supports ESLint-like single line comments `ptsl-disable-line`, `ptsl-disable-next-line`
 
 ### ptsl-disable-fn
 
@@ -163,14 +163,14 @@ for (let i = 0; i < 10; i += 1) {
 
 ```ts
 let x = 0; // ptsl-disable-line pure-ts/immutable
-let y = 1; // ptsl-disable-line pure-ts
+let y = 1; // ptsl-disable-line immutable
 ```
 
-## Suppressions
+## Bulk suppressions
 
 Intended for gradual legacy codebase improvement that has too many rule violations to fix or disable at once.
 
-Inspired by ESLint suppressions, but is much simpler.
+Inspired by ESLint bulk suppressions, but is much simpler.
 
 Init with
 
