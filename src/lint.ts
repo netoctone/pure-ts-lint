@@ -5,6 +5,8 @@ import { readFileSync } from 'node:fs';
 import { parseAndLint } from './parser.ts';
 import { suppress, type FileAndErrs } from './suppress.ts';
 
+const lintJS = process.argv.includes('--js');
+
 const globConfig = {
   ignore: {
     childrenIgnored: (p: { name: string }) => {
@@ -17,7 +19,7 @@ const packages = [
   `${process.cwd()}/package.json`,
   ...globSync(`${process.cwd()}/**/package.json`, globConfig)
 ];
-const files = globSync(`${process.cwd()}/**/*.{ts,mts,tsx}`, globConfig);
+const files = globSync(`${process.cwd()}/**/*.{ts,mts,tsx${lintJS ? ',js,mjs,jsx' : ''}}`, globConfig);
 
 const filesErrs = files
   .map((file) => ({ file, errs: parseAndLint(file) }))
