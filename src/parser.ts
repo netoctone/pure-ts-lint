@@ -482,14 +482,14 @@ const IGNORE = {
   NEXT_LINE: 'ptsl-disable-next-line',
   FN_BODY: 'ptsl-disable-fn'
 } as const;
+const allIgnoreDirectives: (string | undefined)[] = Object.values(IGNORE);
 
 // mutates `disabledRulesMap` argument:
 const appendToDisabledRulesMap = (
   disabledRulesMap: RowToDisabledRules,
   row: number,
-  rules: LintRule[]
+  disabledRules: DisabledLintRule[]
 ): void => {
-  const disabledRules = rules.length ? rules : ['all' as const];
   const existingRules = disabledRulesMap.get(row);
   disabledRulesMap.set(row, existingRules ? [...existingRules, ...disabledRules] : disabledRules);
 };
@@ -497,31 +497,54 @@ const appendToDisabledRulesMap = (
 const genRowToDisabledRules = (
   comments: T.Comment[],
   filePosToRow: number[]
-): { rowToDisabledRules: RowToDisabledRules; rowToTopFnBodyComment: RowToDisabledRules } => {
+): {
+  rowToDisabledRules: RowToDisabledRules;
+  rowToTopFnBodyComment: RowToDisabledRules;
+  lintErrsForInvalidRule: LintErr[];
+} => {
   const rowToDisabledRules: RowToDisabledRules = new Map();
   const rowToTopFnBodyComment: RowToDisabledRules = new Map();
+  const lintErrsForInvalidRule = [];
 
   for (const comment of comments) {
     const row = filePosToRow[comment.start];
     // TODO: support comment.type = 'Block' as well:
     if ((!!row || row === 0) && comment.type === 'Line') {
       const [directive, ...rulesRaw] = comment.value.trim().split(/,?\s/);
-      const rules = rulesRaw
-        .map((rule) => (rule.startsWith('pure-ts/') ? rule : `pure-ts/${rule}`))
-        .filter((rule): rule is LintRule => rule in allLintRules);
-      if (directive === IGNORE.CUR_LINE || directive === IGNORE.NEXT_LINE) {
-        const rowAffected = directive === IGNORE.CUR_LINE ? row : row + 1;
-        appendToDisabledRulesMap(rowToDisabledRules, rowAffected, rules);
+      if (!allIgnoreDirectives.includes(directive)) {
+        continue;
       }
-      if (directive === IGNORE.FN_BODY) {
-        appendToDisabledRulesMap(rowToTopFnBodyComment, row, rules);
+
+      const rules = rulesRaw.map((rule) =>
+        rule.startsWith('pure-ts/') ? rule : `pure-ts/${rule}`
+      );
+      const rulesValid = rules.filter((rule): rule is LintRule => rule in allLintRules);
+      const rulesInvalid = rules.filter((rule) => !(rule in allLintRules));
+      if (rulesInvalid.length) {
+        lintErrsForInvalidRule.push({
+          rule: 'disable-invalid-rule' as LintRule,
+          node: comment,
+          msg: `Attempting to disable an unrecognized lint rule(s): ${rulesInvalid.join(', ')}`
+        });
+      }
+
+      if (rulesValid.length > 0 || rulesInvalid.length === 0) {
+        const disabledRules = rulesValid.length ? rulesValid : ['all' as const];
+        if (directive === IGNORE.CUR_LINE || directive === IGNORE.NEXT_LINE) {
+          const rowAffected = directive === IGNORE.CUR_LINE ? row : row + 1;
+          appendToDisabledRulesMap(rowToDisabledRules, rowAffected, disabledRules);
+        }
+        if (directive === IGNORE.FN_BODY) {
+          appendToDisabledRulesMap(rowToTopFnBodyComment, row, disabledRules);
+        }
       }
     }
   }
 
   return {
     rowToDisabledRules,
-    rowToTopFnBodyComment
+    rowToTopFnBodyComment,
+    lintErrsForInvalidRule
   };
 };
 
@@ -532,10 +555,8 @@ export const parseAndLint = (filePath: string): LintError[] => {
 
   const programLines = genProgramLines(programString);
   const filePosToRow = genFilePosToRow(programString);
-  const { rowToDisabledRules, rowToTopFnBodyComment } = genRowToDisabledRules(
-    comments,
-    filePosToRow
-  );
+  const { rowToDisabledRules, rowToTopFnBodyComment, lintErrsForInvalidRule } =
+    genRowToDisabledRules(comments, filePosToRow);
   const context = {
     path: filePath,
     program: programString,
@@ -547,7 +568,7 @@ export const parseAndLint = (filePath: string): LintError[] => {
   };
   const lintErrs = parseBody(context, programAST.body);
 
-  return lintErrs.map((e) => ({
+  return [...lintErrs, ...lintErrsForInvalidRule].map((e) => ({
     rule: e.rule,
     msg: e.msg,
     line: getCodeLineToPrint(context, e.node)
