@@ -6,7 +6,7 @@ type LintRule = 'pure-ts/immutable' | 'pure-ts/typecast';
 
 type DisabledLintRule = LintRule | 'all';
 
-type RowToDisabledRules = Map<number, DisabledLintRule[]>; // 0-based row number to ignored rules array
+type MapRowToDisabledRules = Map<number, DisabledLintRule[]>; // 0-based row number to ignored rules array
 
 // redundant object needed for typescript to do compile-time check for exhaustiveness
 // (that all string literals comprising LintRule type union are present in object without exception):
@@ -20,11 +20,11 @@ interface LinterContext {
   program: string;
   programLines: { code: string; start: number }[]; // 0-based row to line-of-code string and 0-based pos (line's first character's absolute offset in a whole file)
   filePosToRow: number[]; // 0-based pos to 0-based row number
-  rowToDisabledRules: RowToDisabledRules;
+  rowToDisabledRules: MapRowToDisabledRules;
   // if a file line contains comment `// ptsl-disable-fn [rule], ...`,
   // this line's 0-based line number will be mapped to a list of rules that this comment disables
   // in the following Map:
-  rowToTopFnBodyComment: RowToDisabledRules;
+  rowToTopFnBodyComment: MapRowToDisabledRules;
   fnBodyDisabledRules: DisabledLintRule[];
 }
 
@@ -486,7 +486,7 @@ const allIgnoreDirectives: (string | undefined)[] = Object.values(IGNORE);
 
 // mutates `disabledRulesMap` argument:
 const appendToDisabledRulesMap = (
-  disabledRulesMap: RowToDisabledRules,
+  disabledRulesMap: MapRowToDisabledRules,
   row: number,
   disabledRules: DisabledLintRule[]
 ): void => {
@@ -498,12 +498,12 @@ const genRowToDisabledRules = (
   comments: T.Comment[],
   filePosToRow: number[]
 ): {
-  rowToDisabledRules: RowToDisabledRules;
-  rowToTopFnBodyComment: RowToDisabledRules;
+  rowToDisabledRules: MapRowToDisabledRules;
+  rowToTopFnBodyComment: MapRowToDisabledRules;
   lintErrsForInvalidRule: LintErr[];
 } => {
-  const rowToDisabledRules: RowToDisabledRules = new Map();
-  const rowToTopFnBodyComment: RowToDisabledRules = new Map();
+  const rowToDisabledRules: MapRowToDisabledRules = new Map();
+  const rowToTopFnBodyComment: MapRowToDisabledRules = new Map();
   const lintErrsForInvalidRule = [];
 
   for (const comment of comments) {
