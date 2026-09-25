@@ -23,11 +23,13 @@ const files = globSync(
   globConfig
 );
 
+const startAt = new Date().getTime();
 const filesErrs = files
   .map((file) => ({ file, errs: parseAndLint(file) }))
   .filter(({ errs }) => errs.length > 0);
 
 const remainigFilesErrs: FileAndErrs[] = suppress(process.argv, packages, filesErrs, process.cwd());
+const endAt = new Date().getTime();
 
 let totalErrors = 0; // ptsl-disable-line immutable
 for (const { file, errs } of remainigFilesErrs) {
@@ -39,9 +41,10 @@ for (const { file, errs } of remainigFilesErrs) {
   }
 }
 if (totalErrors === 0) {
+  console.log(`0 errors. Took ${endAt - startAt}ms`);
   process.exit(0);
 } else {
   console.log('');
-  console.log(`x ${totalErrors} errors`);
+  console.log(`x ${totalErrors} errors. Took ${endAt - startAt}ms`);
   process.exit(1);
 }
