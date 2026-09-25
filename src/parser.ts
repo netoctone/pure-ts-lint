@@ -264,7 +264,7 @@ function parseExpression(ctx: LinterContext, node: T.Expression): LintErr[] {
       return filterLintErr(ctx, {
         rule: 'pure-ts/typecast',
         node,
-        msg: 'Do no use `as` typecast. Consider instead using TypeScript type narrowing based on type guards aka type predicates - https://www.typescriptlang.org/docs/handbook/advanced-types.html#user-defined-type-guards'
+        msg: `Do no use \`${node.type === 'TSAsExpression' ? 'as' : '<>'}\` type assertion (typecast). Consider instead using TypeScript type narrowing based on type guards aka type predicates - https://www.typescriptlang.org/docs/handbook/advanced-types.html#user-defined-type-guards`
       });
     case 'TSNonNullExpression':
       return parseExpression(ctx, node.expression);
