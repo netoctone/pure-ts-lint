@@ -154,7 +154,7 @@ export const suppress = (
 
   if (isSuppressInit || (isSuppressPrune && remainingFilesErrs.length === 0)) {
     suppFileToItsContent.forEach((content, suppressFile) => {
-      writeFileSync(suppressFile, JSON.stringify(content, null, 2));
+      writeFileSync(suppressFile, `${JSON.stringify(content, null, 2)}\n`);
     });
   }
 
