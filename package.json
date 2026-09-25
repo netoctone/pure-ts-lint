@@ -1,6 +1,6 @@
 {
   "name": "pure-ts-lint",
-  "version": "0.0.14",
+  "version": "0.0.15",
   "description": "TypeScript linter to prioritise pure functions and type safety (beyond TS strict: true). Inspired by eslint-plugin-react-hooks react-hooks/immutability rule. Powered by oxc-parser.",
   "author": "netoctone",
   "license": "MIT",
