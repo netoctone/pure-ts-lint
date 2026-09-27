@@ -227,6 +227,16 @@ function parseArguments(ctx: LinterContext, args: T.Argument[]): LintErr[] {
   });
 }
 
+function parseAssignmentTarget(ctx: LinterContext, node: T.AssignmentTarget): LintErr[] {
+  return isAllowedAssignmentTarget(ctx, node)
+    ? []
+    : filterLintErr(ctx, {
+        rule: 'pure-ts/immutable' as const,
+        node,
+        msg: "Do not reassign variable's value unless absolutely necessary."
+      });
+}
+
 function parseExpression(ctx: LinterContext, node: T.Expression): LintErr[] {
   // node.type not processing:
   // ChainExpression, ClassExpression, ImportExpression, TaggedTemplateExpression,
@@ -248,13 +258,7 @@ function parseExpression(ctx: LinterContext, node: T.Expression): LintErr[] {
       }
       return parseExpression(ctx, node.body);
     case 'AssignmentExpression':
-      const leftErrs = isAllowedAssignmentTarget(ctx, node.left)
-        ? []
-        : filterLintErr(ctx, {
-            rule: 'pure-ts/immutable' as const,
-            node,
-            msg: "Do not reassign variable's value unless absolutely necessary."
-          });
+      const leftErrs = parseAssignmentTarget(ctx, node.left);
       const rightErrs = parseExpression(ctx, node.right);
       return [...leftErrs, ...rightErrs];
     case 'AwaitExpression':
@@ -323,6 +327,14 @@ function parseExpression(ctx: LinterContext, node: T.Expression): LintErr[] {
   }
 }
 
+function parseForStatementLeft(ctx: LinterContext, node: T.ForStatementLeft): LintErr[] {
+  if (node.type === 'VariableDeclaration') {
+    return parseDeclaration(ctx, node);
+  } else {
+    return parseAssignmentTarget(ctx, node);
+  }
+}
+
 function parseForStatementInit(ctx: LinterContext, node: T.ForStatementInit): LintErr[] {
   if (node.type === 'VariableDeclaration') {
     return parseDeclaration(ctx, node);
@@ -344,6 +356,12 @@ function parseBodyNode(ctx: LinterContext, node: T.Directive | T.Statement): Lin
       return [];
     case 'ExpressionStatement':
       return parseExpression(ctx, node.expression);
+    case 'ForOfStatement':
+      return [
+        ...parseForStatementLeft(ctx, node.left),
+        ...parseExpression(ctx, node.right),
+        ...parseBodyNode(ctx, node.body)
+      ];
     case 'ForStatement':
       return [
         ...(node.init ? parseForStatementInit(ctx, node.init) : []),
