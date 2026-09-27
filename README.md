@@ -1,10 +1,10 @@
 # pure-ts-lint
 
-TypeScript linter to prioritise pure functions and type safety (beyond TS strict: true).
+Fast TypeScript linter to prioritise immutability and type safety (beyond TS strict: true).
 
-Inspired by `eslint-plugin-react-hooks` `react-hooks/immutability` rule.
+Works faster than oxlint with JS plugins for immutability.
 
-Powered by high-performance oxc-parser (oxlint is 50x - 100x faster than ESLint)
+Powered by `oxc-parser` and `glob`.
 
 ## Why
 
@@ -24,7 +24,7 @@ This project attempts to prioritise immutability in all of the application's cod
 
 It doesn't fully ban mutability.
 
-If it is really necessary, linter rule(s) can be disabled via comments `// ptsl-disable-line` and `// ptsl-disable-next-line`.
+If it is really necessary, linter rule(s) can be disabled via comments `// ptsl-disable-fn` (affects whole body of a function), `// ptsl-disable-line` and `// ptsl-disable-next-line`.
 
 ## Usage
 
@@ -100,9 +100,14 @@ class Component {
 Examples of _incorrect_ code:
 
 ```ts
-const x = { a: 1 } as object; // Do not use `as` type assertion (typecast). Consider instead using TypeScript type narrowing based on type guards aka type predicates - https://www.typescriptlang.org/docs/handbook/advanced-types.html#user-defined-type-guards
+const x = { a: 1 } as object; // Do not use `as` type assertion (typecast). Use TypeScript type narrowing https://www.typescriptlang.org/docs/handbook/2/narrowing.html
 
-const y = <object>{ b: 2 }; // Do not use `<>` type assertion (typecast). Consider instead using TypeScript type narrowing based on type guards aka type predicates - https://www.typescriptlang.org/docs/handbook/advanced-types.html#user-defined-type-guards
+const y = <object>{ b: 2 }; // Do not use `<>` type assertion (typecast). Use TypeScript type narrowing https://www.typescriptlang.org/docs/handbook/2/narrowing.html
+
+const z = (array: (string | null)[]): string[] => {
+  return array.filter((v) => !!v) as string[]; // Do not use `as` type assertion (typecast). Use TypeScript type narrowing https://www.typescriptlang.org/docs/handbook/2/narrowing.html
+};
+z([null, '', 'str']);
 ```
 
 Examples of _correct_ code for pure-ts/typecast rule:
@@ -110,13 +115,18 @@ Examples of _correct_ code for pure-ts/typecast rule:
 ```ts
 const x = { a: 1 } as const;
 const y = <const>{ b: 2 };
+
+const z = (array: (string | null)[]): string[] => {
+  return array.filter(v => v !== null).filter((v) => !!v);
+};
+z([null, '', 'str']);
 ```
 
 ## Disable rules
 
-Supports an advanced function-scope single-line comment `ptsl-disable-fn`
+Supports an advanced function-scope single-line comment `// ptsl-disable-fn`
 
-And also supports ESLint-like single line comments `ptsl-disable-line`, `ptsl-disable-next-line`
+And also supports ESLint-like single line comments `// ptsl-disable-line`, `// ptsl-disable-next-line`
 
 ### ptsl-disable-fn
 
