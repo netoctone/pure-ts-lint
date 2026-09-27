@@ -33,7 +33,7 @@ const endAt = new Date().getTime();
 
 let totalErrors = 0; // ptsl-disable-line immutable
 for (const { file, errs } of remainigFilesErrs) {
-  totalErrors += errs.length;
+  totalErrors += errs.length; // ptsl-disable-line immutable
   console.log('');
   console.log(file);
   for (const err of errs) {

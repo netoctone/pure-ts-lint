@@ -24,6 +24,7 @@ const getPathParts = (file: string): string[] => {
 };
 
 const genDirsTree = (packages: string[]): DirsTree => {
+  // ptsl-disable-fn immutable
   const dirsTree: DirsTree = { nodes: {} };
   for (const packageFile of packages) {
     const parts = getPathParts(packageFile);
@@ -41,9 +42,10 @@ const genDirsTree = (packages: string[]): DirsTree => {
 };
 
 const findClosestSuppressFile = (tsFile: string, dirsTree: DirsTree): string => {
+  // ptsl-disable-fn immutable
   const parts = getPathParts(tsFile);
-  let suppressFile = dirsTree.suppressFile || ''; // ptsl-disable-line immutable
-  let node = dirsTree; // ptsl-disable-line immutable
+  let suppressFile = dirsTree.suppressFile || '';
+  let node = dirsTree;
   for (const part of parts) {
     const nextNode = node.nodes[part];
     if (!nextNode) {
@@ -76,8 +78,8 @@ type SuppressFileToContentMap = Map<string, SuppressFileContent>;
 const genSingleFileRuleErrorsCounts = (errs: LintError[]): SingleFileRuleErrorsCounts => {
   const res: SingleFileRuleErrorsCounts = {};
   for (const err of errs) {
-    const ruleData = (res[err.rule] ||= { max: 0 });
-    ruleData.max += 1;
+    // ptsl-disable-next-line immutable
+    res[err.rule] = { max: (res[err.rule]?.max ?? 0) + 1 };
   }
   return res;
 };

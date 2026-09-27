@@ -540,7 +540,8 @@ const genRowToDisabledRules = (
       const rulesInvalid = rules.filter((rule) => !(rule in allLintRules));
       if (rulesInvalid.length) {
         lintErrsForInvalidRule.push({
-          rule: 'disable-invalid-rule' as LintRule,
+          // ptsl-disable-next-line typecast
+          rule: 'disable-invalid-rule' as LintRule, // this is not correct cast, but no real harm
           node: comment,
           msg: `Attempting to disable an unrecognized lint rule(s): ${rulesInvalid.join(', ')}`
         });
