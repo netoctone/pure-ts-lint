@@ -178,10 +178,15 @@ function parseFunction(ctx: LinterContext, node: T.Function): LintErr[] {
   return [];
 }
 
+function parseClass(ctx: LinterContext, node: T.Class): LintErr[] {
+  return node.body.body.flatMap((itemNode) => parseClassBodyNode(ctx, itemNode));
+}
+
 function parseDeclaration(ctx: LinterContext, node: T.Declaration): LintErr[] {
   switch (node.type) {
     case 'ClassDeclaration':
-      return node.body.body.flatMap((itemNode) => parseClassBodyNode(ctx, itemNode));
+    case 'ClassExpression':
+      return parseClass(ctx, node);
     case 'FunctionDeclaration':
     case 'FunctionExpression':
     case 'TSDeclareFunction':
@@ -239,7 +244,7 @@ function parseAssignmentTarget(ctx: LinterContext, node: T.AssignmentTarget): Li
 
 function parseExpression(ctx: LinterContext, node: T.Expression): LintErr[] {
   // node.type not processing:
-  // ChainExpression, ClassExpression, ImportExpression, TaggedTemplateExpression,
+  // ChainExpression, ImportExpression, TaggedTemplateExpression,
   // JSXElement, JSXFragment, TSInstantiationExpression, V8IntrinsicExpression
   switch (node.type) {
     case 'ArrayExpression':
@@ -270,6 +275,9 @@ function parseExpression(ctx: LinterContext, node: T.Expression): LintErr[] {
       ];
     case 'CallExpression':
       return [...parseExpression(ctx, node.callee), ...parseArguments(ctx, node.arguments)];
+    case 'ClassExpression':
+    case 'ClassDeclaration':
+      return parseClass(ctx, node);
     case 'ConditionalExpression':
       return [
         ...parseExpression(ctx, node.test),
@@ -327,6 +335,27 @@ function parseExpression(ctx: LinterContext, node: T.Expression): LintErr[] {
   }
 }
 
+function parseExportDefaultDeclaration(
+  ctx: LinterContext,
+  nodeDeclaration: T.ExportDefaultDeclaration
+): LintErr[] {
+  const node = nodeDeclaration.declaration;
+  switch (node.type) {
+    case 'ClassDeclaration':
+    case 'ClassExpression':
+      return parseClass(ctx, node);
+    case 'FunctionDeclaration':
+    case 'FunctionExpression':
+    case 'TSDeclareFunction':
+    case 'TSEmptyBodyFunctionExpression':
+      return parseFunction(ctx, node);
+    case 'TSInterfaceDeclaration':
+      return [];
+    default:
+      return parseExpression(ctx, node);
+  }
+}
+
 function parseForStatementLeft(ctx: LinterContext, node: T.ForStatementLeft): LintErr[] {
   if (node.type === 'VariableDeclaration') {
     return parseDeclaration(ctx, node);
@@ -375,6 +404,8 @@ function parseBodyNode(ctx: LinterContext, node: T.Directive | T.Statement): Lin
         ...parseBodyNode(ctx, node.consequent),
         ...(node.alternate ? parseBodyNode(ctx, node.alternate) : [])
       ];
+    case 'ExportDefaultDeclaration':
+      return parseExportDefaultDeclaration(ctx, node);
     case 'ReturnStatement':
       if (node.argument) {
         return parseExpression(ctx, node.argument);
