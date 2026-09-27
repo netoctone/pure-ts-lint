@@ -213,6 +213,60 @@ function parseDeclaration(ctx: LinterContext, node: T.Declaration): LintErr[] {
   }
 }
 
+// === jsx parser fns start ===
+
+function parseJSXAttributeValueOrJSXChild(
+  ctx: LinterContext,
+  node: T.JSXAttributeValue | T.JSXChild
+): LintErr[] {
+  switch (node.type) {
+    case 'JSXExpressionContainer':
+      if (node.expression.type !== 'JSXEmptyExpression') {
+        return parseExpression(ctx, node.expression);
+      }
+      return [];
+    case 'JSXElement':
+      return parseJSXElement(ctx, node);
+    case 'JSXFragment':
+      return parseJSXFragment(ctx, node);
+    case 'JSXSpreadChild':
+      return parseExpression(ctx, node.expression);
+    default:
+      return [];
+  }
+}
+
+function parseJSXAttributeItem(ctx: LinterContext, node: T.JSXAttributeItem): LintErr[] {
+  switch (node.type) {
+    case 'JSXAttribute':
+      if (node.value) {
+        return parseJSXAttributeValueOrJSXChild(ctx, node.value);
+      }
+      return [];
+    case 'JSXSpreadAttribute':
+      return parseExpression(ctx, node.argument);
+    default:
+      return [];
+  }
+}
+
+function parseJSXOpeningElement(ctx: LinterContext, node: T.JSXOpeningElement): LintErr[] {
+  return node.attributes.flatMap((nodeItem) => parseJSXAttributeItem(ctx, nodeItem));
+}
+
+function parseJSXElement(ctx: LinterContext, node: T.JSXElement): LintErr[] {
+  return [
+    ...parseJSXOpeningElement(ctx, node.openingElement),
+    ...node.children.flatMap((nodeItem) => parseJSXAttributeValueOrJSXChild(ctx, nodeItem))
+  ];
+}
+
+function parseJSXFragment(ctx: LinterContext, node: T.JSXFragment): LintErr[] {
+  return node.children.flatMap((nodeItem) => parseJSXAttributeValueOrJSXChild(ctx, nodeItem));
+}
+
+// === jsx parser fns end ===
+
 function parseObjectProperty(ctx: LinterContext, node: T.ObjectPropertyKind): LintErr[] {
   switch (node.type) {
     case 'SpreadElement':
@@ -286,6 +340,10 @@ function parseExpression(ctx: LinterContext, node: T.Expression): LintErr[] {
       ];
     case 'FunctionExpression':
       return parseFunction(ctx, node);
+    case 'JSXElement':
+      return parseJSXElement(ctx, node);
+    case 'JSXFragment':
+      return parseJSXFragment(ctx, node);
     case 'LogicalExpression':
       return [...parseExpression(ctx, node.left), ...parseExpression(ctx, node.right)];
     case 'MemberExpression':
