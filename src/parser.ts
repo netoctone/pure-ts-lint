@@ -329,6 +329,8 @@ function parseExpression(ctx: LinterContext, node: T.Expression): LintErr[] {
       ];
     case 'CallExpression':
       return [...parseExpression(ctx, node.callee), ...parseArguments(ctx, node.arguments)];
+    case 'ChainExpression':
+      return parseExpression(ctx, node.expression);
     case 'ClassExpression':
     case 'ClassDeclaration':
       return parseClass(ctx, node);
