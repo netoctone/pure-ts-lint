@@ -1,0 +1,51 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`global-scope err > should work 1`] = `
+[
+  {
+    "errs": [
+      {
+        "line": "1:1 var a;",
+        "msg": "Do not use let/var - only use const (or explicit disable comment)",
+        "rule": "pure-ts/immutable",
+      },
+      {
+        "line": "2:1 let x;",
+        "msg": "Do not use let/var - only use const (or explicit disable comment)",
+        "rule": "pure-ts/immutable",
+      },
+      {
+        "line": "3:1 var a2 = 1;",
+        "msg": "Do not use let/var - only use const (or explicit disable comment)",
+        "rule": "pure-ts/immutable",
+      },
+      {
+        "line": "4:1 let x2 = 1;",
+        "msg": "Do not use let/var - only use const (or explicit disable comment)",
+        "rule": "pure-ts/immutable",
+      },
+      {
+        "line": "6:1 a = 1;",
+        "msg": "Do not reassign variable's value unless absolutely necessary.",
+        "rule": "pure-ts/immutable",
+      },
+      {
+        "line": "7:1 a.b = 1;",
+        "msg": "Do not reassign variable's value unless absolutely necessary.",
+        "rule": "pure-ts/immutable",
+      },
+      {
+        "line": "8:1 a++;",
+        "msg": "Do not change variable's value unless absolutely necessary.",
+        "rule": "pure-ts/immutable",
+      },
+      {
+        "line": "9:1 a += 1;",
+        "msg": "Do not reassign variable's value unless absolutely necessary.",
+        "rule": "pure-ts/immutable",
+      },
+    ],
+    "file": "/Users/evgeniyokhrimenko/work/creation/2026/pure-ts-lint/test/paired-tests/global-scope/fixture-err/err.ts",
+  },
+]
+`;

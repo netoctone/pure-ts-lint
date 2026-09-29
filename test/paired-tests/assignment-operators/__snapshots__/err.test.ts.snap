@@ -1,0 +1,96 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`assignment-operators err > should work 1`] = `
+[
+  {
+    "errs": [
+      {
+        "line": "2:3   let x = 0;",
+        "msg": "Do not use let/var - only use const (or explicit disable comment)",
+        "rule": "pure-ts/immutable",
+      },
+      {
+        "line": "3:3   x = 0;",
+        "msg": "Do not reassign variable's value unless absolutely necessary.",
+        "rule": "pure-ts/immutable",
+      },
+      {
+        "line": "4:3   x += 1;",
+        "msg": "Do not reassign variable's value unless absolutely necessary.",
+        "rule": "pure-ts/immutable",
+      },
+      {
+        "line": "5:3   x -= 2;",
+        "msg": "Do not reassign variable's value unless absolutely necessary.",
+        "rule": "pure-ts/immutable",
+      },
+      {
+        "line": "6:3   x *= 3;",
+        "msg": "Do not reassign variable's value unless absolutely necessary.",
+        "rule": "pure-ts/immutable",
+      },
+      {
+        "line": "7:3   x /= 4;",
+        "msg": "Do not reassign variable's value unless absolutely necessary.",
+        "rule": "pure-ts/immutable",
+      },
+      {
+        "line": "8:3   x %= 5;",
+        "msg": "Do not reassign variable's value unless absolutely necessary.",
+        "rule": "pure-ts/immutable",
+      },
+      {
+        "line": "9:3   x **= 6;",
+        "msg": "Do not reassign variable's value unless absolutely necessary.",
+        "rule": "pure-ts/immutable",
+      },
+      {
+        "line": "10:3   x <<= 7;",
+        "msg": "Do not reassign variable's value unless absolutely necessary.",
+        "rule": "pure-ts/immutable",
+      },
+      {
+        "line": "11:3   x >>= 8;",
+        "msg": "Do not reassign variable's value unless absolutely necessary.",
+        "rule": "pure-ts/immutable",
+      },
+      {
+        "line": "12:3   x >>>= 9;",
+        "msg": "Do not reassign variable's value unless absolutely necessary.",
+        "rule": "pure-ts/immutable",
+      },
+      {
+        "line": "13:3   x &= 10;",
+        "msg": "Do not reassign variable's value unless absolutely necessary.",
+        "rule": "pure-ts/immutable",
+      },
+      {
+        "line": "14:3   x ^= 11;",
+        "msg": "Do not reassign variable's value unless absolutely necessary.",
+        "rule": "pure-ts/immutable",
+      },
+      {
+        "line": "15:3   x |= 12;",
+        "msg": "Do not reassign variable's value unless absolutely necessary.",
+        "rule": "pure-ts/immutable",
+      },
+      {
+        "line": "16:3   x &&= 13;",
+        "msg": "Do not reassign variable's value unless absolutely necessary.",
+        "rule": "pure-ts/immutable",
+      },
+      {
+        "line": "17:3   x ||= 14;",
+        "msg": "Do not reassign variable's value unless absolutely necessary.",
+        "rule": "pure-ts/immutable",
+      },
+      {
+        "line": "18:3   x ??= 15;",
+        "msg": "Do not reassign variable's value unless absolutely necessary.",
+        "rule": "pure-ts/immutable",
+      },
+    ],
+    "file": "/Users/evgeniyokhrimenko/work/creation/2026/pure-ts-lint/test/paired-tests/assignment-operators/fixture-err/err.ts",
+  },
+]
+`;

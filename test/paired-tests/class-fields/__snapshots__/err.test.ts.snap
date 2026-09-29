@@ -1,0 +1,41 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`class-fields err > should work 1`] = `
+[
+  {
+    "errs": [
+      {
+        "line": "2:3   public a;",
+        "msg": "Do not define mutable class property - consider instead using readonly property or redux/ngrx action/reducer/store/selector for things that really need to mutate. Also can consider react hook or angular signal if mutable state is small and used in just one or few classes.",
+        "rule": "pure-ts/immutable",
+      },
+      {
+        "line": "3:3   public b = 1;",
+        "msg": "Do not define mutable class property - consider instead using readonly property or redux/ngrx action/reducer/store/selector for things that really need to mutate. Also can consider react hook or angular signal if mutable state is small and used in just one or few classes.",
+        "rule": "pure-ts/immutable",
+      },
+      {
+        "line": "4:3   private c;",
+        "msg": "Do not define mutable class property - consider instead using readonly property or redux/ngrx action/reducer/store/selector for things that really need to mutate. Also can consider react hook or angular signal if mutable state is small and used in just one or few classes.",
+        "rule": "pure-ts/immutable",
+      },
+      {
+        "line": "5:3   private d = 2;",
+        "msg": "Do not define mutable class property - consider instead using readonly property or redux/ngrx action/reducer/store/selector for things that really need to mutate. Also can consider react hook or angular signal if mutable state is small and used in just one or few classes.",
+        "rule": "pure-ts/immutable",
+      },
+      {
+        "line": "6:3   e;",
+        "msg": "Do not define mutable class property - consider instead using readonly property or redux/ngrx action/reducer/store/selector for things that really need to mutate. Also can consider react hook or angular signal if mutable state is small and used in just one or few classes.",
+        "rule": "pure-ts/immutable",
+      },
+      {
+        "line": "7:3   f = 3;",
+        "msg": "Do not define mutable class property - consider instead using readonly property or redux/ngrx action/reducer/store/selector for things that really need to mutate. Also can consider react hook or angular signal if mutable state is small and used in just one or few classes.",
+        "rule": "pure-ts/immutable",
+      },
+    ],
+    "file": "/Users/evgeniyokhrimenko/work/creation/2026/pure-ts-lint/test/paired-tests/class-fields/fixture-err/err.ts",
+  },
+]
+`;

@@ -28,7 +28,8 @@
     "release": "npm run build && npm publish",
     "watch": "tsc --noEmit --watch -p tsconfig.json",
     "build": "tsc -p tsconfig.json",
-    "lint": "src/lint.ts && echo 'ptsl done!\n' && oxlint"
+    "lint": "src/lint.ts && echo 'ptsl done!\n' && oxlint",
+    "test": "vitest test"
   },
   "dependencies": {
     "glob": "13.0.6",
@@ -39,6 +40,7 @@
     "@types/node": "26.2.0",
     "oxlint": "1.83.0",
     "prettier": "3.9.6",
-    "typescript": "7.0.2"
+    "typescript": "7.0.2",
+    "vitest": "5.0.2"
   }
 }

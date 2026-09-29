@@ -1,0 +1,26 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`typecast err > should work 1`] = `
+[
+  {
+    "errs": [
+      {
+        "line": "1:11 const x = { a: 1 } as object;",
+        "msg": "Do not use \`as\` type assertion (typecast). Use TypeScript type narrowing https://www.typescriptlang.org/docs/handbook/2/narrowing.html",
+        "rule": "pure-ts/typecast",
+      },
+      {
+        "line": "3:11 const y = <object>{ b: 2 };",
+        "msg": "Do not use \`<>\` type assertion (typecast). Use TypeScript type narrowing https://www.typescriptlang.org/docs/handbook/2/narrowing.html",
+        "rule": "pure-ts/typecast",
+      },
+      {
+        "line": "6:10   return array.filter((v) => !!v) as string[];",
+        "msg": "Do not use \`as\` type assertion (typecast). Use TypeScript type narrowing https://www.typescriptlang.org/docs/handbook/2/narrowing.html",
+        "rule": "pure-ts/typecast",
+      },
+    ],
+    "file": "/Users/evgeniyokhrimenko/work/creation/2026/pure-ts-lint/test/paired-tests/typecast/fixture-err/err.ts",
+  },
+]
+`;

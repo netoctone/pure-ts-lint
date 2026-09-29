@@ -28,11 +28,11 @@ const filesErrs = files
   .map((file) => ({ file, errs: parseAndLint(file) }))
   .filter(({ errs }) => errs.length > 0);
 
-const remainigFilesErrs: FileAndErrs[] = suppress(process.argv, packages, filesErrs, process.cwd());
+export const remainingFilesErrs: FileAndErrs[] = suppress(process.argv, packages, filesErrs, process.cwd());
 const endAt = new Date().getTime();
 
 let totalErrors = 0; // ptsl-disable-line immutable
-for (const { file, errs } of remainigFilesErrs) {
+for (const { file, errs } of remainingFilesErrs) {
   totalErrors += errs.length; // ptsl-disable-line immutable
   console.log('');
   console.log(file);
