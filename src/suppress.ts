@@ -157,7 +157,10 @@ export const suppress = (
 
   if (isSuppressInit || (isSuppressPrune && remainingFilesErrs.length === 0)) {
     suppFileToItsContent.forEach((content, suppressFile) => {
-      writeFileSync(suppressFile, `${JSON.stringify(content, null, 2)}\n`);
+      const contentSorted = Object.fromEntries(
+        Object.entries(content).sort(([aFile], [bFile]) => aFile.localeCompare(bFile))
+      );
+      writeFileSync(suppressFile, `${JSON.stringify(contentSorted, null, 2)}\n`);
     });
   }
 
