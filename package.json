@@ -24,6 +24,13 @@
   "bin": {
     "ptsl": "dist/lint.js"
   },
+  "files": [
+    "dist",
+    "src",
+    "tsconfig.json",
+    "LICENCE",
+    "README.md"
+  ],
   "scripts": {
     "release": "npm run build && npm publish",
     "watch": "tsc --noEmit --watch -p tsconfig.json",
