@@ -1,17 +1,14 @@
 #!/usr/bin/env node
-import { globSync } from 'glob';
+import { globSync } from 'node:fs';
 
 import { parseAndLint } from './parser.ts';
 import { suppress, type FileAndErrs } from './suppress.ts';
 
 const lintJS = process.argv.includes('--js');
 
+const startAt = new Date().getTime();
 const globConfig = {
-  ignore: {
-    childrenIgnored: (p: { name: string }) => {
-      return p.name === 'node_modules' || p.name === 'dist';
-    }
-  }
+  exclude: ['node_modules', 'dist']
 };
 const packages = [
   // ensure cwd() will get suppressions.json file even if cwd() doesn't contain package.json file:
@@ -23,7 +20,6 @@ const files = globSync(
   globConfig
 );
 
-const startAt = new Date().getTime();
 const filesErrs = files
   .map((file) => ({ file, errs: parseAndLint(file) }))
   .filter(({ errs }) => errs.length > 0);

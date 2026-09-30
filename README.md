@@ -4,7 +4,7 @@ Fast TypeScript linter to prioritise immutability and type safety (beyond TS str
 
 Works faster than oxlint with JS plugins for immutability.
 
-Powered by `oxc-parser` and `glob`.
+Only dependency is `oxc-parser` (since v0.0.17).
 
 ## Why
 

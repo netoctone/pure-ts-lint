@@ -32,7 +32,6 @@
     "test": "vitest test"
   },
   "dependencies": {
-    "glob": "13.0.6",
     "oxc-parser": "0.150.0"
   },
   "devDependencies": {
