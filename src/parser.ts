@@ -107,23 +107,8 @@ const _printCodeChunk = (ctx: LinterContext, node: T.Span): void => {
 
 // parser fns utils:
 
-const isSpecFile = (ctx: LinterContext): boolean => {
-  return ctx.path.endsWith('.spec.ts');
-};
-
 const isAllowedAssignmentTarget = (ctx: LinterContext, node: T.AssignmentTarget): boolean => {
   if (getCodeChunk(ctx, node) === 'module.exports') {
-    return true;
-  }
-  // TODO: maybe remove once `overrides` config is implemented:
-  if (isSpecFile(ctx)) {
-    return true;
-  }
-  return false;
-};
-
-const isAllowedLetOrVar = (ctx: LinterContext, _node: T.Declaration): boolean => {
-  if (isSpecFile(ctx)) {
     return true;
   }
   return false;
@@ -138,9 +123,6 @@ const isAllowedTypecast = (
     if (typeNameNode.type === 'Identifier' && typeNameNode.name === 'const') {
       return true;
     }
-  }
-  if (isSpecFile(ctx)) {
-    return true;
   }
   if (node.expression.type === 'ArrayExpression' && node.expression.elements.length === 0) {
     return true;
@@ -194,9 +176,6 @@ function parseDeclaration(ctx: LinterContext, node: T.Declaration): LintErr[] {
       return parseFunction(ctx, node);
     case 'VariableDeclaration':
       if (node.kind === 'let' || node.kind === 'var') {
-        if (isAllowedLetOrVar(ctx, node)) {
-          return [];
-        }
         return filterLintErr(ctx, {
           rule: 'pure-ts/immutable',
           node,

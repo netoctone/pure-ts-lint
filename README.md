@@ -176,6 +176,22 @@ let x = 0; // ptsl-disable-line pure-ts/immutable
 let y = 1; // ptsl-disable-line immutable
 ```
 
+## Ignore files
+
+`**/node_modules` and `**/dist` folders are always ignored.
+
+Additional files/folders to ignore can be defined in a config file `purelint.config.json`. Example:
+
+```json
+{
+  "exclude": ["test", "**/__tests__/*.spec.ts"]
+}
+```
+
+`exclude` is a list of glob patterns to be excluded, relative to `pwd`.
+
+It is passed to `node:fs` `globSync`'s `exclude` option.
+
 ## Bulk suppressions
 
 Intended for gradual legacy codebase improvement that has too many rule violations to fix or disable at once.

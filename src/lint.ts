@@ -1,14 +1,21 @@
 #!/usr/bin/env node
-import { globSync } from 'node:fs';
+import { existsSync, globSync, readFileSync } from 'node:fs';
 
 import { parseAndLint } from './parser.ts';
 import { suppress, type FileAndErrs } from './suppress.ts';
 
 const lintJS = process.argv.includes('--js');
 
+const configFile = `${process.cwd()}/purelint.config.json`;
+const defaultConfig = {};
+const config = {
+  ...defaultConfig,
+  ...(existsSync(configFile) ? JSON.parse(readFileSync(configFile).toString()) : {})
+};
+
 const startAt = new Date().getTime();
 const globConfig = {
-  exclude: ['node_modules', 'dist']
+  exclude: Array.from(new Set(['**/node_modules', '**/dist', ...(config.exclude || [])]))
 };
 const packages = [
   // ensure cwd() will get suppressions.json file even if cwd() doesn't contain package.json file:
@@ -24,6 +31,7 @@ const filesErrs = files
   .map((file) => ({ file, errs: parseAndLint(file) }))
   .filter(({ errs }) => errs.length > 0);
 
+// prettier-ignore
 export const remainingFilesErrs: FileAndErrs[] = suppress(process.argv, packages, filesErrs, process.cwd());
 const endAt = new Date().getTime();
 
