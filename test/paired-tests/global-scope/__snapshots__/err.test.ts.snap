@@ -30,8 +30,8 @@ exports[`global-scope err > should work 1`] = `
         "rule": "pure-ts/immutable",
       },
       {
-        "line": "7:1 a.b = 1;",
-        "msg": "Do not reassign variable's value unless absolutely necessary.",
+        "line": "7:1 --a;",
+        "msg": "Do not change variable's value unless absolutely necessary.",
         "rule": "pure-ts/immutable",
       },
       {

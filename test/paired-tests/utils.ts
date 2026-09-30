@@ -1,9 +1,13 @@
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it, Mock, vi } from 'vitest';
 
-export const testOkFixture = (pairedTestFolderPath) => {
+declare const process: { exit: Mock<(arg: unknown) => void>; cwd: () => string };
+declare const console: { log: Mock<(...args: unknown[]) => void> };
+
+export const testOkFixture = (pairedTestFolderPath: string): void => {
   const folder = pairedTestFolderPath.split('/').pop();
   describe(`${folder} ok`, () => {
     it('should work', () => {
+      // ptsl-disable-fn immutable
       process.exit = vi.fn();
       process.cwd = () => `${pairedTestFolderPath}/fixture-ok`;
       console.log = vi.fn();
@@ -14,15 +18,16 @@ export const testOkFixture = (pairedTestFolderPath) => {
 
       const consoleLogCalls = console.log.mock.calls;
       expect(consoleLogCalls.length).toEqual(1);
-      expect(consoleLogCalls[0][0]).toMatch(/^0 errors. Took \d+ms$/);
+      expect(consoleLogCalls[0]?.[0]).toMatch(/^0 errors. Took \d+ms$/);
     });
   });
 };
 
-export const testErrFixture = (pairedTestFolderPath) => {
+export const testErrFixture = (pairedTestFolderPath: string): void => {
   const folder = pairedTestFolderPath.split('/').pop();
   describe(`${folder} err`, () => {
     it('should work', () => {
+      // ptsl-disable-fn immutable
       process.exit = vi.fn();
       process.cwd = () => `${pairedTestFolderPath}/fixture-err`;
       console.log = vi.fn();
@@ -33,7 +38,7 @@ export const testErrFixture = (pairedTestFolderPath) => {
 
       const consoleLogCalls = console.log.mock.calls;
       const consoleLogCallLast = consoleLogCalls[consoleLogCalls.length - 1];
-      expect(consoleLogCallLast[0]).toMatch(/^x \d+ errors. Took \d+ms$/);
+      expect(consoleLogCallLast?.[0]).toMatch(/^x \d+ errors. Took \d+ms$/);
     });
   });
 };

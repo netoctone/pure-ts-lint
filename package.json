@@ -29,7 +29,8 @@
     "watch": "tsc --noEmit --watch -p tsconfig.json",
     "build": "tsc -p tsconfig.json",
     "lint": "src/lint.ts && echo 'ptsl done!\n' && oxlint",
-    "test": "vitest test"
+    "test": "vitest test",
+    "test:tsc": "tsc --noEmit --watch -p tsconfig.test.json"
   },
   "dependencies": {
     "oxc-parser": "0.150.0"

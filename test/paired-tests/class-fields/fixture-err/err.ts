@@ -1,3 +1,4 @@
+// @ts-nocheck
 class Component {
   public a;
   public b = 1;

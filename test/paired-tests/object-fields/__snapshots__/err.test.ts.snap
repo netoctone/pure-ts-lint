@@ -1,0 +1,31 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`object-fields err > should work 1`] = `
+[
+  {
+    "errs": [
+      {
+        "line": "1:1 let a = { b: 1, a2: { a3: 'str' } };",
+        "msg": "Do not use let/var - only use const (or explicit disable comment)",
+        "rule": "pure-ts/immutable",
+      },
+      {
+        "line": "2:1 a.b = 2;",
+        "msg": "Do not reassign variable's value unless absolutely necessary.",
+        "rule": "pure-ts/immutable",
+      },
+      {
+        "line": "3:1 a['b'] = 3;",
+        "msg": "Do not reassign variable's value unless absolutely necessary.",
+        "rule": "pure-ts/immutable",
+      },
+      {
+        "line": "4:1 a.a2.a3 = 'new';",
+        "msg": "Do not reassign variable's value unless absolutely necessary.",
+        "rule": "pure-ts/immutable",
+      },
+    ],
+    "file": "/Users/evgeniyokhrimenko/work/creation/2026/pure-ts-lint/test/paired-tests/object-fields/fixture-err/err.ts",
+  },
+]
+`;

@@ -1,3 +1,3 @@
-import { testOkFixture } from '../utils';
+import { testOkFixture } from '../utils.ts';
 
 testOkFixture(__dirname);

@@ -1,0 +1,8 @@
+{
+  "ignorePatterns": [
+    "node_modules",
+    "dist",
+    "test/**/fixture-err/err.ts",
+    "test/**/fixture-ok/ok.ts"
+  ]
+}
